@@ -77,7 +77,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			if (($this->coordinateIsRange($w) || $this->coordinateIsValid(Str::after($w, "!"))) && !in_array($w,$this->iIntervals)){
 				$this->iIntervals[]=$w;
 			}
-		}else if (is_array($w) || $w instanceof \Traversable){
+		}else if (is_iterable($w)){
 			foreach ($w as $wa){
                 $this->grep($wa);
             } 
@@ -89,9 +89,9 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
         if (is_array($v) && !empty($v) && !Arr::isAssoc($v) && $this->coordinateIsRange($w)){            
 			$w=strtoupper($w);
 			$this->iValues[$w]=["interval" => $w, "data" => $v];                       
-        }else if (is_array($w) || $w instanceof \Traversable){
-			foreach ($w as $wa){
-				$this->send($wa);
+        }else if (is_iterable($w)){
+			foreach ($w as $k => $v){
+				$this->send($k,$v);
             }            
         }
         return $this;
