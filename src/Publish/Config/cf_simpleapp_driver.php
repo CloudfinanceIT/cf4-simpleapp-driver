@@ -2,7 +2,7 @@
 return [
    "base_url" => env("CF_SIMPLEAPP_URL"),	
    "secret" => env("CF_SIMPLEAPP_SECRET"),
-   "debug" => env("SIMPLEAPP_LOG",false),
+   "debug" => env("CF_SIMPLEAPP_LOG",false),
    "default_s3_bucket" => env('AWS_BUCKET'),  
    "cache" => [
 		"enabled" => env("CF_SIMPLEAPP_CACHE_ENABLED",true),

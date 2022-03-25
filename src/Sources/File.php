@@ -8,8 +8,8 @@ class File implements SimpleAppSource {
 	protected $cache_max_precision;
 	protected $ck;
 	
-	public function __construct(SymfonyFile $w, bool $cache_max_precision=true){
-		$this->file=$w;
+	public function __construct($w, bool $cache_max_precision=true){
+		$this->file=$w instanceof SymfonyFile ? $w : new SymfonyFile($w);
 		$this->cache_max_precision=$cache_max_precision;
 	}
 	

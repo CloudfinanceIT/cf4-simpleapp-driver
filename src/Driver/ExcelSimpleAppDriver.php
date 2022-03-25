@@ -11,7 +11,7 @@ use Illuminate\Support\Traits\Macroable;
 use JsonSerializable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
-use CloudFinance\SimpleAppDriver\Contract\SimpleAppSource;
+use CloudFinance\SimpleAppDriver\Contracts\SimpleAppSource;
 
 class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
     
@@ -44,9 +44,9 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
     }    
 
 	public function __call($name, $args){
-		if (Str::endsWith($name,"source")){
-			$name="CloudFinance\SimpleAppDriver\Sources\\".ucfirst(substr($name,0,-6));
-			if (class_exists($name) && is_subclass_of($name,SimpleAppSource::class)){
+		if (Str::endsWith($name,"Source")){                    
+			$name="CloudFinance\SimpleAppDriver\Sources\\".ucfirst(substr($name,0,-6));                        
+			if (class_exists($name) && is_subclass_of($name,SimpleAppSource::class,true)){
 				return $this->source(new $name(...$args));
 			}
 		}else if (static::hasMacro($name)) {
@@ -75,7 +75,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 		if (is_string($w)){
 			$w=strtoupper($w);
 			if (($this->coordinateIsRange($w) || $this->coordinateIsValid(Str::after($w, "!"))) && !in_array($w,$this->iIntervals)){
-				$this->iIntervals[]=$a;
+				$this->iIntervals[]=$w;
 			}
 		}else if (is_array($w) || $w instanceof \Traversable){
 			foreach ($w as $wa){
@@ -302,9 +302,9 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			$this->iValues,
 			$this->iFillCells,
 			$this->iSheetPassword,
-			$this->iSource->getCacheValue(),
-		]);		
-		$nf=config("cf_simpleapp_driver.cache.enabled","");
+			$this->iSource->getCacheValue()
+		]));		
+		$nf=config("cf_simpleapp_driver.cache.folder","");
 		if (!empty($nf)){
 			$nf=Str::finish($nf,DIRECTORY_SEPARATOR);
 		}
@@ -313,7 +313,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			$duration=intval(config("cf_simpleapp_driver.cache.duration",0))*60;
 			if ($duration<=0 || (time()-$this->storage()->lastModified($nf))<=$duration){					
 				if (config("cf_simpleapp_driver.debug")!=false){            
-					Log::debug($strtoupper(uniqid("ESAW-"))." REQUEST ".json_encode([						
+					Log::debug(strtoupper(uniqid("ESAW-"))." REQUEST ".json_encode([						
 						"id" => spl_object_id($this),
 						"at" => microtime(true),
 						"source" => get_class($this->iSource)." ::: ".$this->iSource->getCacheValue(),

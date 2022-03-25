@@ -1,5 +1,7 @@
 <?php
 namespace CloudFinance\SimpleAppDriver\Facades;
+use Illuminate\Support\Facades\Facade;
+
 
 class ExcelSimpleApp extends Facade {
 	
