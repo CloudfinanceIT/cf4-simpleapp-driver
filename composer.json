@@ -1,0 +1,19 @@
+{
+	"name" : "cloud-finance/cf4-simpleapp-driver",
+	"description" : "SDK per la connessione al servizio elaborazione SimpleApp cloud finance",
+	"require" : {
+		"php" : ">=7.1.9",
+		"guzzlehttp/guzzle" : ">=6.5",
+		"laravel/framework" : ">=5.6"
+	},
+	"autoload" : {
+		"psr-4" : {
+			"CloudFinance\\SimpleAppDriver\\" : "src/"
+		}
+	},
+	"extra" : {
+		"laravel" : {
+			"providers" : [ "CloudFinance\\SimpleAppDriver\\CfSimpleAppDriverServiceProvider" ]
+		}
+	}
+}
