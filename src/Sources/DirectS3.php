@@ -7,7 +7,7 @@ class DirectS3 implements SimpleAppSource {
 	protected $bucket;
 	
 	public function __construct(string $keyName, $bucketName = null){
-		$this->bucket = empty($bucket_name) ?  config("cf_simpleapp_driver.default_s3_bucket",config("filesystems.disk.s3.bucket","")) : $bucketName;
+		$this->bucket = empty($bucketName) ?  config("cf_simpleapp_driver.default_s3_bucket",config("filesystems.disk.s3.bucket","")) : $bucketName;
 		$this->key=$keyName;
 	}
 	
