@@ -20,4 +20,8 @@ class DirectS3 implements SimpleAppSource {
 	public function getCacheValue(): string {
 		return $this->bucket."@".$this->key;
 	}
+	
+	public function usesS3(): bool {
+		return true;
+	}
 }

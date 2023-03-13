@@ -12,6 +12,7 @@ use JsonSerializable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use CloudFinance\SimpleAppDriver\Contracts\SimpleAppSource;
+use CloudFinance\SimpleAppDriver\Exceptions\SimpleAppException;
 
 class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
     
@@ -154,11 +155,11 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			$response=$this->baseRequest("api/fileassembly");        
 			$mime=$response->getHeader("Content-Type");        
 			if (empty($mime)){
-				throw new \Exception("No mimetype received from the server!");
+				throw new SimpleAppException("No mimetype received from the server!");
 			}
 			$ext=MimeTypes::getDefault()->getExtensions($mime[0]);
 			if (empty($ext)){
-				throw new \Exception("Invalid mimetype '$mime' received from the server!");
+				throw new SimpleAppException("Invalid mimetype '$mime' received from the server!");
 			}		
 			return (string) $response->getBody();
 		});
@@ -191,7 +192,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
     public function getRemoteJsonData(){
         
         return json_decode($this->usingCache("json",function (){
-			return (string) $this->baseRequest("api/readfromfile")->getBody();
+			return (string) $this->baseRequest($this->my_source()->usesS3() ? "api/readfrombucket" : "api/readfromfile")->getBody();
 		}),true) ?? [];
     }
     
@@ -222,7 +223,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			unset($i);
 		}
 	
-		$data=array_merge($data,$this->iSource->getDataForRemoteRequest());
+		$data=array_merge($data,$this->my_source()->getDataForRemoteRequest());
 		
         $url=$this->getUrl($uri);
         $mypid=strtoupper(uniqid("ESAW-"));
@@ -232,7 +233,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
                 "url" => $url,
                 "id" => spl_object_id($this),
                 "at" => $mypid_start,
-				"source" => get_class($this->iSource)." ::: ".$this->iSource->getCacheValue(),
+				"source" => get_class($this->my_source())." ::: ".$this->my_source()->getCacheValue(),
                 "grep" => $this->iIntervals,
                 "send" => (config("cf_simpleapp_driver.debug")=='full') ? $this->iValues : array_keys($this->iValues)
             ]));
@@ -259,7 +260,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
         if ($response->getStatusCode()!=200){
             $m=$mypid." CfExcelSimpleDriver requesto to '$url' failed: HTTP ".$response->getStatusCode()." ".$responseBodyStr;
             Log::error($m);            
-            throw new \Exception($m);
+            throw new SimpleAppException($m);
         }
         
         return $response;
@@ -302,7 +303,8 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			$this->iValues,
 			$this->iFillCells,
 			$this->iSheetPassword,
-			$this->iSource->getCacheValue()
+			$this->my_source()->usesS3(),
+			$this->my_source()->getCacheValue()
 		]));		
 		$nf=config("cf_simpleapp_driver.cache.folder","");
 		if (!empty($nf)){
@@ -316,7 +318,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 					Log::debug(strtoupper(uniqid("ESAW-"))." REQUEST ".json_encode([						
 						"id" => spl_object_id($this),
 						"at" => microtime(true),
-						"source" => get_class($this->iSource)." ::: ".$this->iSource->getCacheValue(),
+						"source" => get_class($this->my_source())." ::: ".$this->my_source()->getCacheValue(),
 						"grep" => $this->iIntervals,
 						"send" => (config("cf_simpleapp_driver.debug")=='full') ? $this->iValues : array_keys($this->iValues)
 					])." SERVED BY CACHE FILE ".$nf);
@@ -335,4 +337,10 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 		return Storage::disk(config("cf_simpleapp_driver.cache.disk",""));
 	}
 	
+	protected function my_source() {
+		if ($this->iSource instanceof SimpleAppSource){
+			return $this->iSource;
+		}
+		throw new SimpleAppException("Invalid source given!");
+	}
 }

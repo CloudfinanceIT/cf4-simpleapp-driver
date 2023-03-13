@@ -24,5 +24,9 @@ class File implements SimpleAppSource {
 		}
 		return $this->ck;
 	}
+	
+	public function usesS3(): bool {
+		return false;
+	}
  
 }
