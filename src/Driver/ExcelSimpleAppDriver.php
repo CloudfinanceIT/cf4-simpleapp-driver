@@ -12,6 +12,7 @@ use JsonSerializable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use CloudFinance\SimpleAppDriver\Contracts\SimpleAppSource;
+use CloudFinance\SimpleAppDriver\Contracts\ProvidesSimpleAppSource;
 use CloudFinance\SimpleAppDriver\Exceptions\SimpleAppException;
 
 class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
@@ -39,8 +40,12 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 		return $this;
 	}
 	
-    public function source(SimpleAppSource $w){        		
-		$this->iSource=$w;		
+    public function source($w){        
+		if ($w instanceof SimpleAppSource){
+			$this->iSource=$w;		
+		}else if ($w instanceof ProvidesSimpleAppSource){
+			$this->iSource=$w->getSimpleAppSource();
+		}
         return $this;
     }    
 
