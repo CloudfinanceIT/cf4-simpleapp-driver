@@ -9,11 +9,12 @@ use Illuminate\Support\Arr;
 use Illuminate\Contracts\Support\Jsonable;
 use Illuminate\Support\Traits\Macroable;
 use JsonSerializable;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use CloudFinance\SimpleAppDriver\Contracts\SimpleAppSource;
 use CloudFinance\SimpleAppDriver\Contracts\ProvidesSimpleAppSource;
 use CloudFinance\SimpleAppDriver\Exceptions\SimpleAppException;
+use Monolog\Logger;
+use Monolog\Handler\HandlerInterface;
 
 class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
     
@@ -21,6 +22,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
         __call as protected macroCall;
     }
 	
+	protected static $plog;
 	
     protected $iTimeout=60;
     protected $iSource;
@@ -29,12 +31,17 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 	protected $iFillCells=[];
     protected $iSheetPassword=null;
 	protected $cache_enabled;
-
+	protected $id;
 	
 	public function __construct(){
 		$this->cache_enabled=(config("cf_simpleapp_driver.cache.enabled") === true);
+		$this->id=Str::uuid();
 	}
-    		
+    
+	public function getKey() {
+		return $this->id;
+	}
+	
 	public function caching(bool $v){		
 		$this->cache_enabled=($v && config("cf_simpleapp_driver.cache.enabled") === true);		
 		return $this;
@@ -347,5 +354,46 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			return $this->iSource;
 		}
 		throw new SimpleAppException("Invalid source given!");
+	}
+	
+	protected static function log($level, $message, $context) : bool {
+		if (static::getLogger()){
+			return static::getLogger()->addRecord(Logger::toMonologLevel($level), value($message), Arr::wrap(value($context)));
+		}
+		return false;
+	}
+	
+	protected static function getLogger(){
+		if (is_null(static::$plog)){
+			static::$plog=false;
+			$config=config("cf_simpleapp_driver.logging");
+			if (is_array($config)){
+				$h=static::createLogHandler($config);
+				if ($h instanceof HandlerInterface){
+					static::$plog=new Logger("ESAW-".$this->id);
+					static::$plog->pushHandler($h);
+				}
+			}
+		}
+		return static::$plog;
+	}
+	
+	protected static function createLogHandler(array $config) {
+		$cls=Arr::get($config, "handler");
+		if ($cls && class_exists($cls) && is_subclass_of($cls,HandlerInterface::class)){
+			$params=(new \ReflectionClass($cls))->getConstructor()->getParameters();
+			$args=[];
+			foreach ($params as $param) {
+				$n=$param->getName();
+				if (Arr::has($config,"with.$n")){
+					$args[]=Arr::get($config,"with.$n");
+				}else{
+					$args[]=$param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
+				}
+			}
+			$ret=new $cls(...$args);
+			return $ret->setLevel(Arr::get($config,"level"));
+		}
+		return null;
 	}
 }
