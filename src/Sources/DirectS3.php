@@ -11,17 +11,17 @@ class DirectS3 implements SimpleAppSource {
 		$this->key=$keyName;
 	}
 	
-	public function getDataForRemoteRequest(): array {
+	public function simpleAppGetDataForRemoteRequest(): array {
 		return [
 			["name" => "keyName", "contents" => $this->key],
 			["name" => "bucketname", "contents" => $this->bucket]
 		];
 	}
-	public function getCacheValue(): string {
+	public function simpleAppGetCacheKey(): string {
 		return $this->bucket."@".$this->key;
 	}
 	
-	public function usesS3(): bool {
+	public function simpleAppUsesS3(): bool {
 		return true;
 	}
 }

@@ -192,7 +192,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
     public function getRemoteJsonData(){
         
         return json_decode($this->usingCache("json",function (){
-			return (string) $this->baseRequest($this->my_source()->usesS3() ? "api/readfrombucket" : "api/readfromfile")->getBody();
+			return (string) $this->baseRequest($this->my_source()->simpleAppUsesS3() ? "api/readfrombucket" : "api/readfromfile")->getBody();
 		}),true) ?? [];
     }
     
@@ -223,7 +223,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			unset($i);
 		}
 	
-		$data=array_merge($data,$this->my_source()->getDataForRemoteRequest());
+		$data=array_merge($data,$this->my_source()->simpleAppGetDataForRemoteRequest());
 		
         $url=$this->getUrl($uri);
         $mypid=strtoupper(uniqid("ESAW-"));
@@ -233,7 +233,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
                 "url" => $url,
                 "id" => spl_object_id($this),
                 "at" => $mypid_start,
-				"source" => get_class($this->my_source())." ::: ".$this->my_source()->getCacheValue(),
+				"source" => get_class($this->my_source())." ::: ".$this->my_source()->simpleAppGetCacheKey(),
                 "grep" => $this->iIntervals,
                 "send" => (config("cf_simpleapp_driver.debug")=='full') ? $this->iValues : array_keys($this->iValues)
             ]));
@@ -303,8 +303,8 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			$this->iValues,
 			$this->iFillCells,
 			$this->iSheetPassword,
-			$this->my_source()->usesS3(),
-			$this->my_source()->getCacheValue()
+			$this->my_source()->simpleAppUsesS3(),
+			$this->my_source()->simpleAppGetCacheKey()
 		]));		
 		$nf=config("cf_simpleapp_driver.cache.folder","");
 		if (!empty($nf)){
@@ -318,7 +318,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 					Log::debug(strtoupper(uniqid("ESAW-"))." REQUEST ".json_encode([						
 						"id" => spl_object_id($this),
 						"at" => microtime(true),
-						"source" => get_class($this->my_source())." ::: ".$this->my_source()->getCacheValue(),
+						"source" => get_class($this->my_source())." ::: ".$this->my_source()->simpleAppGetCacheKey(),
 						"grep" => $this->iIntervals,
 						"send" => (config("cf_simpleapp_driver.debug")=='full') ? $this->iValues : array_keys($this->iValues)
 					])." SERVED BY CACHE FILE ".$nf);

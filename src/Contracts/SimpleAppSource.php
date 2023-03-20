@@ -2,7 +2,7 @@
 namespace CloudFinance\SimpleAppDriver\Contracts;
 
 interface SimpleAppSource {
-	public function getDataForRemoteRequest(): array;
-	public function getCacheValue(): string;
-	public function usesS3(): bool;
+	public function simpleAppGetDataForRemoteRequest(): array;
+	public function simpleAppGetCacheKey(): string;
+	public function simpleAppUsesS3(): bool;
 }

@@ -13,19 +13,19 @@ class File implements SimpleAppSource {
 		$this->cache_max_precision=$cache_max_precision;
 	}
 	
-	public function getDataForRemoteRequest(): array {
+	public function simpleAppGetDataForRemoteRequest(): array {
 		return [
 			["name" => "file", "contents" => \GuzzleHttp\Psr7\Utils::tryFopen($this->file->getPathname(),"r")]
 		];
 	}
-	public function getCacheValue(): string {
+	public function simpleAppGetCacheKey(): string {
 		if (empty($this->ck)){
 			$this->ck = $this->cache_max_precision ? sha1_file($this->file->getPathname()) : $this->file->getPathname();
 		}
 		return $this->ck;
 	}
 	
-	public function usesS3(): bool {
+	public function simpleAppUsesS3(): bool {
 		return false;
 	}
  
