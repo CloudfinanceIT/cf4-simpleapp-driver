@@ -408,9 +408,10 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			if (method_exists($ret,"setLevel")){
 				$ret->setLevel(Arr::get($config,"level"));
 			}
-			if (method_exists($ret,"setFormatter")){
+			if (method_exists($ret,"setFormatter")){				
 				$class_formatter=Arr::get($config, "formatter");
-				if ($class_formatter && class_exists($class_formatter) && is_subclass_of($cls,FormatterInterface::class)){
+				
+				if ($class_formatter && class_exists($class_formatter) && is_subclass_of($class_formatter,FormatterInterface::class)){
 					$ret->setFormatter(static::newWithParams($class_formatter,$with));
 				}
 			}
