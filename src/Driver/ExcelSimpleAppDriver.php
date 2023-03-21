@@ -15,6 +15,7 @@ use CloudFinance\SimpleAppDriver\Contracts\ProvidesSimpleAppSource;
 use CloudFinance\SimpleAppDriver\Exceptions\SimpleAppException;
 use Monolog\Logger;
 use Monolog\Handler\HandlerInterface;
+use Monolog\Formatter\FormatterInterface;
 
 class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
     
@@ -401,19 +402,34 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 	protected static function createLogHandler(array $config) {
 		$cls=Arr::get($config, "handler");
 		if ($cls && class_exists($cls) && is_subclass_of($cls,HandlerInterface::class)){
-			$params=(new \ReflectionClass($cls))->getConstructor()->getParameters();
-			$args=[];
-			foreach ($params as $param) {
-				$n=$param->getName();
-				if (Arr::has($config,"with.$n")){
-					$args[]=Arr::get($config,"with.$n");
-				}else{
-					$args[]=$param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
+			$with=Arr::wrap(Arr::get($config,"with",[]));
+			$ret=static::newWithParams($cls,$with);
+			
+			if (method_exists($ret,"setLevel")){
+				$ret->setLevel(Arr::get($config,"level"));
+			}
+			if (method_exists($ret,"setFormatter")){
+				$class_formatter=Arr::get($config, "formatter");
+				if ($class_formatter && class_exists($class_formatter) && is_subclass_of($cls,FormatterInterface::class)){
+					$ret->setFormatter(static::newWithParams($class_formatter,$with));
 				}
 			}
-			$ret=new $cls(...$args);
-			return $ret->setLevel(Arr::get($config,"level"));
+			
 		}
 		return null;
+	}
+	
+	protected static function newWithParams(string $cls, array $data=[]){
+		$params=(new \ReflectionClass($cls))->getConstructor()->getParameters();
+		$args=[];
+		foreach ($params as $param) {
+			$n=$param->getName();
+			if (array_key_exists($n,$data)){
+				$args[]=$data[$n];
+			}else{
+				$args[]=$param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
+			}
+		}
+		return newe $cls(...$args);
 	}
 }
