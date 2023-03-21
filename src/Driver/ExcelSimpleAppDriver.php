@@ -34,13 +34,10 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 	protected $id;
 	
 	public function __construct(){
-		$this->cache_enabled=(config("cf_simpleapp_driver.cache.enabled") === true);
+		$this->cache_enabled=(config("cf_simpleapp_driver.cache.enabled") === true);		
 		$this->id=Str::uuid();
 	}
-    
-	public function getKey() {
-		return $this->id;
-	}
+  
 	
 	public function caching(bool $v){		
 		$this->cache_enabled=($v && config("cf_simpleapp_driver.cache.enabled") === true);		
@@ -221,7 +218,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
             $data[]=["name" => 'values', "contents" => json_encode(array_values($this->iValues))];
         }        
         
-        if (!empty($this->password)){
+        if (!empty($this->iSheetPassword)){
             $data[]=["name" => 'password', "contents" => $this->iSheetPassword];
         }
 		
@@ -238,41 +235,58 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 		$data=array_merge($data,$this->my_source()->simpleAppGetDataForRemoteRequest());
 		
         $url=$this->getUrl($uri);
-        $mypid=strtoupper(uniqid("ESAW-"));
-        $mypid_start=microtime(true);
-        if (config("cf_simpleapp_driver.debug")!=false){            
-            Log::debug($mypid." REQUEST ".json_encode([
-                "url" => $url,
-                "id" => spl_object_id($this),
-                "at" => $mypid_start,
-				"source" => get_class($this->my_source())." ::: ".$this->my_source()->simpleAppGetCacheKey(),
-                "grep" => $this->iIntervals,
-                "send" => (config("cf_simpleapp_driver.debug")=='full') ? $this->iValues : array_keys($this->iValues)
-            ]));
-        }        
-        
-        $client = new \GuzzleHttp\Client([
-            'timeout'         => $this->iTimeout,
-            'allow_redirects' => false,      
-        ]);    
-        
-        $response = $client->request("POST", $url,['multipart' => $data]);
-        
-        $responseBodyStr=(string) $response->getBody();
-        
-        if (config("cf_simpleapp_driver.debug")=='full'){  
-            Log::debug($mypid." RESPONSE ".json_encode([
-                "duration" => microtime(true)-$mypid_start,
-                "status" => $response->getStatusCode(),
-                "headers" => $response->getHeaders(),
-                "body" => $responseBodyStr
-            ]));
-        }
-        
-        if ($response->getStatusCode()!=200){
-            $m=$mypid." CfExcelSimpleDriver requesto to '$url' failed: HTTP ".$response->getStatusCode()." ".$responseBodyStr;
-            Log::error($m);            
-            throw new SimpleAppException($m);
+                
+		static::log("debug", "ESAW ".$this->id." request to '".$url."'", function () use ($url, $data) {
+			return [
+				"id" => $this->id,
+				"url" => $url,		
+				"timeout" => $this->iTimeout
+				"grep" => $this->iIntervals,
+				"send" => $this->iValues,
+				"fills" => $this->iFillCells,
+				"raw" => $data
+			];
+		});
+		
+		try{					  
+			$client = new \GuzzleHttp\Client([
+				'timeout'         => $this->iTimeout,
+				'allow_redirects' => false,      
+			]);            
+			$response = $client->request("POST", $url,['multipart' => $data]);        
+			$responseBodyStr=(string) $response->getBody();
+        } catch (\Throwable $ex) {
+			static::log("EMERGENCY","ESAW ".$this->id." response from '".$url."': exception!", function () use ($ex) {
+				return [
+					"id" => $this->id,
+					"url" => $url,				
+					"exception" => [
+						"type" => get_class($ex),
+						"message" => $ex->getMessage(),
+						"code" => $ex->getCode(),
+						"file" => $ex->getFile(),
+						"line" => $ex->getLine(),
+						"trace" => $ex->getTrace()
+					]
+				];
+			});
+			throw new SimpleAppException($ex->getMessage(), $ex->getCode(), $ex);
+		}
+		
+        $status=$response->getStatusCode();
+		
+		static::log($status == 200 ? "debug" : "error","ESAW ".$this->id." response from '".$url."': HTTP ".$status, function () use ($response,$responseBodyStr) {
+			return [
+				"id" => $this->id,
+				"url" => $url,				
+				"status" => $response->getStatusCode(),
+				"headers" => $response->getHeaders(),
+				"body" => $responseBodyStr
+			];
+		});
+		                
+        if ($status!=200){            
+            throw new SimpleAppException($this->id." CfExcelSimpleDriver requesto to '$url' failed: HTTP ".$status);
         }
         
         return $response;
@@ -305,6 +319,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
     }
 	
 	protected function usingCache(string $rootKey, $filler){
+		$this->id=Str::uuid();
 		if (!$this->cache_enabled){
 			return value($filler);
 		}
@@ -326,15 +341,16 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 		if ($this->storage()->exists($nf)){
 			$duration=intval(config("cf_simpleapp_driver.cache.duration",0))*60;
 			if ($duration<=0 || (time()-$this->storage()->lastModified($nf))<=$duration){					
-				if (config("cf_simpleapp_driver.debug")!=false){            
-					Log::debug(strtoupper(uniqid("ESAW-"))." REQUEST ".json_encode([						
-						"id" => spl_object_id($this),
-						"at" => microtime(true),
+				static::log("debug", "ESAWS ".$this->id." request served by cache file '".$nf."'", function (){
+					return [
+						"id" => $this->id,
 						"source" => get_class($this->my_source())." ::: ".$this->my_source()->simpleAppGetCacheKey(),
 						"grep" => $this->iIntervals,
-						"send" => (config("cf_simpleapp_driver.debug")=='full') ? $this->iValues : array_keys($this->iValues)
-					])." SERVED BY CACHE FILE ".$nf);
-				}        			
+						"send" => $this->iValues,
+						"fills" => $this->iFillCells,
+						"sheet_password" => empty($this->iSheetPassword) ? "<empty>" : "<present>"
+					];
+				});					
 				return unserialize($this->storage()->get($nf));
 			}else{
 				$this->storage()->delete($nf);
@@ -357,8 +373,12 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 	}
 	
 	protected static function log($level, $message, $context) : bool {
-		if (static::getLogger()){
-			return static::getLogger()->addRecord(Logger::toMonologLevel($level), value($message), Arr::wrap(value($context)));
+		$logger=static::getLogger();
+		if ($logger)){
+			$level=Logger::toMonologLevel($level);
+			if ($logger->isHandling($level)){
+				return $logger->addRecord($level, value($message), Arr::wrap(value($context)));
+			}
 		}
 		return false;
 	}
@@ -370,7 +390,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			if (is_array($config)){
 				$h=static::createLogHandler($config);
 				if ($h instanceof HandlerInterface){
-					static::$plog=new Logger("ESAW-".$this->id);
+					static::$plog=new Logger(class_basename(get_called_class()));
 					static::$plog->pushHandler($h);
 				}
 			}
