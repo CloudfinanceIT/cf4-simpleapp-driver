@@ -36,7 +36,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 	
 	public function __construct(){
 		$this->cache_enabled=(config("cf_simpleapp_driver.cache.enabled") === true);		
-		$this->id=Str::uuid();
+		$this->id=(string) Str::uuid();
 	}
   
 	
@@ -241,7 +241,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			return [
 				"id" => $this->id,
 				"url" => $url,		
-				"timeout" => $this->iTimeout
+				"timeout" => $this->iTimeout,
 				"grep" => $this->iIntervals,
 				"send" => $this->iValues,
 				"fills" => $this->iFillCells,
@@ -276,7 +276,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 		
         $status=$response->getStatusCode();
 		
-		static::log($status == 200 ? "debug" : "error","ESAW ".$this->id." response from '".$url."': HTTP ".$status, function () use ($response,$responseBodyStr) {
+		static::log($status == 200 ? "debug" : "error","ESAW ".$this->id." response from '".$url."': HTTP ".$status, function () use ($response,$responseBodyStr,$url) {
 			return [
 				"id" => $this->id,
 				"url" => $url,				
@@ -320,7 +320,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
     }
 	
 	protected function usingCache(string $rootKey, $filler){
-		$this->id=Str::uuid();
+		$this->id=(string)Str::uuid();
 		if (!$this->cache_enabled){
 			return value($filler);
 		}
@@ -375,7 +375,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 	
 	protected static function log($level, $message, $context) : bool {
 		$logger=static::getLogger();
-		if ($logger)){
+		if ($logger){
 			$level=Logger::toMonologLevel($level);
 			if ($logger->isHandling($level)){
 				return $logger->addRecord($level, value($message), Arr::wrap(value($context)));
@@ -387,9 +387,9 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 	protected static function getLogger(){
 		if (is_null(static::$plog)){
 			static::$plog=false;
-			$config=config("cf_simpleapp_driver.logging");
+			$config=config("cf_simpleapp_driver.logging");			
 			if (is_array($config)){
-				$h=static::createLogHandler($config);
+				$h=static::createLogHandler($config);								
 				if ($h instanceof HandlerInterface){
 					static::$plog=new Logger(class_basename(get_called_class()));
 					static::$plog->pushHandler($h);
@@ -401,10 +401,10 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 	
 	protected static function createLogHandler(array $config) {
 		$cls=Arr::get($config, "handler");
-		if ($cls && class_exists($cls) && is_subclass_of($cls,HandlerInterface::class)){
+		
+		if ($cls && class_exists($cls) && is_subclass_of($cls,HandlerInterface::class)){			
 			$with=Arr::wrap(Arr::get($config,"with",[]));
-			$ret=static::newWithParams($cls,$with);
-			
+			$ret=static::newWithParams($cls,$with);			
 			if (method_exists($ret,"setLevel")){
 				$ret->setLevel(Arr::get($config,"level"));
 			}
@@ -414,7 +414,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 					$ret->setFormatter(static::newWithParams($class_formatter,$with));
 				}
 			}
-			
+			return $ret;
 		}
 		return null;
 	}
@@ -430,6 +430,6 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 				$args[]=$param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
 			}
 		}
-		return newe $cls(...$args);
+		return new $cls(...$args);
 	}
 }
