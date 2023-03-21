@@ -33,12 +33,17 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
     protected $iSheetPassword=null;
 	protected $cache_enabled;
 	protected $id;
+	protected $iTag;
 	
 	public function __construct(){
 		$this->cache_enabled=(config("cf_simpleapp_driver.cache.enabled") === true);		
 		$this->id=(string) Str::uuid();
 	}
-  
+	
+	public function tagged(string $w){
+		$this->iTag=$w;
+		return $this;
+	}
 	
 	public function caching(bool $v){		
 		$this->cache_enabled=($v && config("cf_simpleapp_driver.cache.enabled") === true);		
@@ -240,7 +245,9 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 		static::log("debug", "ESAW ".$this->id." request to '".$url."'", function () use ($url, $data) {
 			return [
 				"id" => $this->id,
+				"tag" => $this->iTag,
 				"url" => $url,		
+				"source" => get_class($this->my_source())." ::: ".$this->my_source()->simpleAppGetCacheKey(),
 				"timeout" => $this->iTimeout,
 				"grep" => $this->iIntervals,
 				"send" => $this->iValues,
@@ -260,7 +267,9 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			static::log("EMERGENCY","ESAW ".$this->id." response from '".$url."': exception!", function () use ($ex,$url) {
 				return [
 					"id" => $this->id,
-					"url" => $url,				
+					"tag" => $this->iTag,
+					"url" => $url,
+					"source" => get_class($this->my_source())." ::: ".$this->my_source()->simpleAppGetCacheKey(),
 					"exception" => [
 						"type" => get_class($ex),
 						"message" => $ex->getMessage(),
@@ -279,7 +288,9 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 		static::log($status == 200 ? "debug" : "error","ESAW ".$this->id." response from '".$url."': HTTP ".$status, function () use ($response,$responseBodyStr,$url) {
 			return [
 				"id" => $this->id,
-				"url" => $url,				
+				"tag" => $this->iTag,
+				"url" => $url,		
+				"source" => get_class($this->my_source())." ::: ".$this->my_source()->simpleAppGetCacheKey(),
 				"status" => $response->getStatusCode(),
 				"headers" => $response->getHeaders(),
 				"body" => $responseBodyStr
@@ -345,6 +356,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 				static::log("debug", "ESAWS ".$this->id." request served by cache file '".$nf."'", function (){
 					return [
 						"id" => $this->id,
+						"tag" => $this->iTag,
 						"source" => get_class($this->my_source())." ::: ".$this->my_source()->simpleAppGetCacheKey(),
 						"grep" => $this->iIntervals,
 						"send" => $this->iValues,
