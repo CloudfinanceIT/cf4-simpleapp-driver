@@ -166,7 +166,8 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
     }
 
     public function toFile(){
-		$fcContents=$this->usingCache("xlsx",function (){
+		$ext=null;
+		$fcContents=$this->usingCache("xlsx",function () use (&$ext){
 			$response=$this->baseRequest("api/fileassembly");        
 			$mime=$response->getHeader("Content-Type");        
 			if (empty($mime)){
