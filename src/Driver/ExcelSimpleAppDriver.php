@@ -181,7 +181,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 		});
 		
 				
-		$tempFileName = sys_get_temp_dir().DIRECTORY_SEPARATOR."esaw-".Str::random(16).".xlsx"";
+		$tempFileName = sys_get_temp_dir().DIRECTORY_SEPARATOR."esaw-".Str::random(16).".xlsx";
 		file_put_contents($tempFileName,$fcContents);
 		
 		return new SymfonyFile($tempFileName);        
