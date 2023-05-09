@@ -166,8 +166,8 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
     }
 
     public function toFile(){
-		$ext=null;
-		$fcContents=$this->usingCache("xlsx",function () use (&$ext){
+		
+		$fcContents=$this->usingCache("xlsx",function () {
 			$response=$this->baseRequest("api/fileassembly");        
 			$mime=$response->getHeader("Content-Type");        
 			if (empty($mime)){
@@ -181,7 +181,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 		});
 		
 				
-		$tempFileName = sys_get_temp_dir().DIRECTORY_SEPARATOR."esaw-".Str::random(16).".".$ext[0];
+		$tempFileName = sys_get_temp_dir().DIRECTORY_SEPARATOR."esaw-".Str::random(16).".xlsx"";
 		file_put_contents($tempFileName,$fcContents);
 		
 		return new SymfonyFile($tempFileName);        
