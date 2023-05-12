@@ -256,7 +256,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 				"raw" => $data
 			];
 		});
-		
+		$responseBodyStr="";
 		try{					  
 			$client = new \GuzzleHttp\Client([
 				'timeout'         => $this->iTimeout,
@@ -271,6 +271,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 					"tag" => $this->iTag,
 					"url" => $url,
 					"source" => get_class($this->my_source())." ::: ".$this->my_source()->simpleAppGetCacheKey(),
+					"body" => $responseBodyStr,
 					"exception" => [
 						"type" => get_class($ex),
 						"message" => $ex->getMessage(),
