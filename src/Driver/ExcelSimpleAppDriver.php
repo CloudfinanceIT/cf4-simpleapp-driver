@@ -265,7 +265,7 @@ class ExcelSimpleAppDriver implements Arrayable, JsonSerializable, Jsonable {
 			$response = $client->request("POST", $url,['multipart' => $data]);        
 			$responseBodyStr=(string) $response->getBody();
         } catch (\Throwable $ex) {
-			static::log("EMERGENCY","ESAW ".$this->id." response from '".$url."': exception!", function () use ($ex,$url) {
+			static::log("EMERGENCY","ESAW ".$this->id." response from '".$url."': exception!", function () use ($ex,$url,$responseBodyStr) {
 				return [
 					"id" => $this->id,
 					"tag" => $this->iTag,
